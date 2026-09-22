@@ -1,13 +1,19 @@
-# APP_RECEBIMENTO_360
+# Recebimento 360
 
-Aplicativo para o recebimento de mercadorias da 360 Manutenção.
+Pacote completo do aplicativo PWA de Recebimento de Materiais do Grupo 360 Manutenção.
 
-## Arquitetura
+## Frontend
+- index.html
+- style.css
+- app.js
+- manifest.json
+- sw.js
+- assets/
 
-- GitHub Pages: interface do aplicativo
-- Google Apps Script: backend/API
-- Google Sheets: banco de dados
-- Google Drive: armazenamento das fotos
-- Gemini: leitura automática da NF-e
+## Backend
+- BACKEND_APPS_SCRIPT/Code.gs
 
-A integração com o backend será adicionada após a aprovação da interface inicial.
+## Observações
+- O Service Worker está na versão v6.
+- O backend usa a implantação do Apps Script já configurada no app.js.
+- Não inclua chaves de API no GitHub. A GEMINI_API_KEY permanece nas propriedades do Apps Script.

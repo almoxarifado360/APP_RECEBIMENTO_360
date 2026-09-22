@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#123f7b">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Recebimento 360</title>
-
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
@@ -14,456 +14,287 @@
 </head>
 
 <body>
-
   <div class="app-shell">
 
     <header class="brand-header">
-      <img
-        src="assets/logo-360.png"
-        class="brand-logo"
-        alt="Grupo 360 Manutenção"
-      >
-
+      <img src="assets/logo-360.png" class="brand-logo" alt="Grupo 360 Manutenção">
       <h1>RECEBIMENTO DE MATERIAIS</h1>
     </header>
 
-
     <main class="content">
 
-
-      <!-- =====================================================
-           INÍCIO
-           ===================================================== -->
-
-      <section
-        id="home"
-        class="screen active"
-      >
+      <!-- INÍCIO -->
+      <section id="home" class="screen active">
 
         <div class="menu-grid">
-
-          <button
-            class="menu-btn active"
-            data-screen="home"
-          >
-            <span class="icon">⌂</span>
+          <button class="menu-btn active" data-screen="home">
+            <span class="menu-icon">🏠</span>
             <strong>Início</strong>
           </button>
 
-
-          <button
-            class="menu-btn"
-            data-screen="new"
-          >
-            <span class="icon">📦</span>
+          <button class="menu-btn" data-screen="new">
+            <span class="menu-icon">📦</span>
             <strong>Novo recebimento</strong>
           </button>
 
-
-          <button
-            class="menu-btn"
-            data-screen="day"
-          >
-            <span class="icon">📋</span>
+          <button class="menu-btn" data-screen="day">
+            <span class="menu-icon">📋</span>
             <strong>Recebimentos do dia</strong>
           </button>
 
-
-          <button
-            class="menu-btn"
-            data-screen="history"
-          >
-            <span class="icon">⌕</span>
+          <button class="menu-btn" data-screen="history">
+            <span class="menu-icon">🕘</span>
             <strong>Histórico</strong>
           </button>
-
         </div>
 
-
-        <section class="section-card latest-card">
-
+        <section class="section-card">
           <div class="section-title-row">
-
-            <h2>
-              Últimos recebimentos
-            </h2>
-
-            <button
-              class="text-btn"
-              data-screen="history"
-            >
+            <h2>📦 Últimos recebimentos</h2>
+            <button class="text-btn" type="button" data-screen="history">
               Ver histórico
             </button>
-
           </div>
 
+          <p class="section-help">
+            Toque em um recebimento para abrir todos os detalhes.
+          </p>
 
-          <div
-            id="latestList"
-            class="receipt-list"
-          >
-
+          <div id="latestList" class="receipt-list">
             <div class="empty-state">
-
               <span>📦</span>
+              <strong>Nenhum recebimento registrado ainda</strong>
+              <small>Os últimos recebimentos aparecerão aqui.</small>
+            </div>
+          </div>
+        </section>
 
-              <strong>
-                Nenhum recebimento registrado ainda
-              </strong>
+      </section>
 
-              <small>
-                Os últimos recebimentos aparecerão aqui.
-              </small>
 
+      <!-- NOVO RECEBIMENTO -->
+      <section id="new" class="screen">
+
+        <button class="back-btn" type="button" data-screen="home">
+          ← Início
+        </button>
+
+        <section class="section-card form-card">
+          <div class="card-heading">
+            <span class="card-heading-icon">📦</span>
+            <div>
+              <h2>Novo recebimento</h2>
+              <p>Registre a NF-e e os materiais recebidos.</p>
+            </div>
+          </div>
+
+          <div class="form-block">
+            <div class="form-section-title">📷 FOTO DA NF-E</div>
+
+            <div class="photo-box">
+              <input
+                id="nfImage"
+                class="native-photo-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+              >
+
+              <div class="photo-instruction">
+                Tire uma foto da NF-e ou selecione uma imagem da galeria.
+              </div>
+
+              <div id="nfReadStatus" class="form-status"></div>
             </div>
 
+            <button
+              id="readNfBtn"
+              class="primary-btn full-btn"
+              type="button"
+            >
+              📖 LER NF-E
+            </button>
+          </div>
+
+          <div class="form-block">
+            <label for="receiptDate">📅 Data do recebimento</label>
+            <input id="receiptDate" class="field-input large-field" type="date">
+
+            <label for="receiptNfe">🧾 Número da NF-e *</label>
+            <input
+              id="receiptNfe"
+              class="field-input large-field"
+              type="text"
+              inputmode="numeric"
+              placeholder="Ex.: 123456"
+            >
+
+            <label for="receiptSupplier">🏢 Fornecedor</label>
+            <input
+              id="receiptSupplier"
+              class="field-input large-field"
+              type="text"
+              placeholder="Nome do fornecedor"
+            >
+          </div>
+        </section>
+
+
+        <section class="section-card form-card">
+          <div class="form-section-title">📦 MATERIAIS RECEBIDOS</div>
+
+          <div id="itemsContainer"></div>
+
+          <button
+            id="addItemBtn"
+            class="secondary-btn full-btn add-item-btn"
+            type="button"
+          >
+            ＋ ADICIONAR MATERIAL
+          </button>
+        </section>
+
+
+        <section class="section-card form-card">
+          <div class="form-block">
+            <label for="receivedBy">👤 Recebido por</label>
+            <input
+              id="receivedBy"
+              class="field-input large-field"
+              type="text"
+              placeholder="Nome de quem recebeu"
+            >
+
+            <label for="observation">📝 Observação</label>
+            <textarea
+              id="observation"
+              class="field-input textarea large-field"
+              rows="4"
+              placeholder="Observação, se necessário..."
+            ></textarea>
+          </div>
+        </section>
+
+
+        <section class="section-card form-card photo-card">
+          <div class="form-section-title">📦 FOTO DA MERCADORIA</div>
+
+          <div class="photo-box">
+            <input
+              id="merchandiseImage"
+              class="native-photo-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+            >
+
+            <div class="photo-instruction">
+              Tire uma foto agora ou escolha uma imagem da galeria.
+            </div>
+
+            <div id="merchandisePhotoStatus" class="form-status"></div>
+          </div>
+
+          <!-- O app.js insere os controles exatamente antes do botão abaixo. -->
+          <input id="merchandiseGalleryInput" type="file" accept="image/*" hidden>
+
+          <button
+            id="saveReceiptBtn"
+            class="primary-btn confirm-btn"
+            type="button"
+          >
+            ✅ FINALIZAR RECEBIMENTO
+          </button>
+
+          <div id="saveStatus" class="form-status"></div>
+        </section>
+
+      </section>
+
+
+      <!-- RECEBIMENTOS DO DIA -->
+      <section id="day" class="screen">
+
+        <button class="back-btn" type="button" data-screen="home">
+          ← Início
+        </button>
+
+        <section class="section-card">
+          <div class="card-heading">
+            <span class="card-heading-icon">📋</span>
+            <div>
+              <h2>Recebimentos do dia</h2>
+              <p>Notas recebidas hoje.</p>
+            </div>
+          </div>
+
+          <div class="receipt-list">
+            <div class="empty-state compact">
+              <span>📋</span>
+              <strong>Carregando recebimentos...</strong>
+            </div>
+          </div>
+        </section>
+
+      </section>
+
+
+      <!-- HISTÓRICO -->
+      <section id="history" class="screen">
+
+        <button class="back-btn" type="button" data-screen="home">
+          ← Início
+        </button>
+
+        <section class="section-card">
+
+          <div class="card-heading">
+            <span class="card-heading-icon">🕘</span>
+            <div>
+              <h2>Histórico</h2>
+              <p>Consulte NF-e, fornecedor ou material.</p>
+            </div>
+          </div>
+
+          <div class="search-box">
+            <input
+              id="historySearch"
+              class="field-input large-field"
+              type="search"
+              placeholder="Digite NF-e, fornecedor ou material"
+            >
+
+            <button
+              id="historySearchBtn"
+              class="primary-btn"
+              type="button"
+            >
+              🔎 BUSCAR
+            </button>
+          </div>
+
+          <div id="historyList">
+            <div class="empty-state compact">
+              <span>🔎</span>
+              <strong>Digite uma pesquisa para consultar.</strong>
+            </div>
           </div>
 
         </section>
 
       </section>
 
-
-
-      <!-- =====================================================
-           NOVO RECEBIMENTO
-           ===================================================== -->
-
-      <section
-        id="new"
-        class="screen"
-      >
-
-        <button
-          class="back-btn"
-          data-screen="home"
-        >
-          ← Início
-        </button>
-
-
-        <div class="section-card">
-
-          <h2>
-            Novo recebimento
-          </h2>
-
-
-          <p class="muted">
-            Tire uma foto da NF-e para preencher automaticamente os dados do recebimento.
-          </p>
-
-
-
-          <!-- =================================================
-               FOTO DA NF-e
-               ================================================= -->
-
-          <div class="form-section-title">
-            📷 Foto da NF-e
-          </div>
-
-
-          <label
-            for="nfImage"
-          >
-            Selecione ou tire uma foto da NF-e
-          </label>
-
-
-          <input
-            id="nfImage"
-            class="field-input"
-            type="file"
-            accept="image/*"
-            capture="environment"
-          >
-
-
-          <button
-            id="readNfBtn"
-            class="primary-btn"
-            type="button"
-          >
-            📖 Ler NF-e
-          </button>
-
-
-          <div
-            id="nfReadStatus"
-            class="form-status"
-          ></div>
-
-
-
-          <!-- =================================================
-               DADOS DA NF-e
-               ================================================= -->
-
-          <label
-            for="receiptDate"
-          >
-            📅 Data do recebimento
-          </label>
-
-
-          <input
-            id="receiptDate"
-            class="field-input"
-            type="date"
-          >
-
-
-          <label
-            for="receiptNfe"
-          >
-            🧾 Número da NF-e *
-          </label>
-
-
-          <input
-            id="receiptNfe"
-            class="field-input"
-            type="text"
-            inputmode="numeric"
-            placeholder="Ex.: 123456"
-          >
-
-
-          <label
-            for="receiptSupplier"
-          >
-            🏢 Fornecedor
-          </label>
-
-
-          <input
-            id="receiptSupplier"
-            class="field-input"
-            type="text"
-            placeholder="Nome do fornecedor"
-          >
-
-
-
-          <!-- =================================================
-               MATERIAIS
-               ================================================= -->
-
-          <div class="form-section-title">
-            📦 Materiais recebidos
-          </div>
-
-
-          <div
-            id="itemsContainer"
-          ></div>
-
-
-          <button
-            id="addItemBtn"
-            class="secondary-btn full-btn"
-            type="button"
-          >
-            ＋ Adicionar material
-          </button>
-
-
-
-          <!-- =================================================
-               RECEBIDO POR
-               ================================================= -->
-
-          <label
-            for="receivedBy"
-          >
-            👤 Recebido por
-          </label>
-
-
-          <input
-            id="receivedBy"
-            class="field-input"
-            type="text"
-            placeholder="Nome de quem recebeu"
-          >
-
-
-
-          <!-- =================================================
-               OBSERVAÇÃO
-               ================================================= -->
-
-          <label
-            for="observation"
-          >
-            📝 Observação
-          </label>
-
-
-          <textarea
-            id="observation"
-            class="field-input textarea"
-            rows="3"
-            placeholder="Observações do recebimento"
-          ></textarea>
-
-
-
-          <!-- =================================================
-               FINALIZAR
-               ================================================= -->
-
-          <button
-            id="saveReceiptBtn"
-            class="primary-btn"
-            type="button"
-          >
-            ✅ Finalizar recebimento
-          </button>
-
-
-          <div
-            id="saveStatus"
-            class="form-status"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-
-      <!-- =====================================================
-           RECEBIMENTOS DO DIA
-           ===================================================== -->
-
-      <section
-        id="day"
-        class="screen"
-      >
-
-        <button
-          class="back-btn"
-          data-screen="home"
-        >
-          ← Início
-        </button>
-
-
-        <div class="section-card">
-
-          <h2>
-            Recebimentos do dia
-          </h2>
-
-
-          <div class="empty-state compact">
-
-            <span>📋</span>
-
-            <strong>
-              Nenhum recebimento hoje
-            </strong>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-
-      <!-- =====================================================
-           HISTÓRICO
-           ===================================================== -->
-
-      <section
-        id="history"
-        class="screen"
-      >
-
-        <button
-          class="back-btn"
-          data-screen="home"
-        >
-          ← Início
-        </button>
-
-
-        <div class="section-card">
-
-          <h2>
-            Histórico
-          </h2>
-
-
-          <div class="search-box">
-
-            <input
-              type="search"
-              placeholder="NF-e ou fornecedor"
-            >
-
-
-            <button
-              class="secondary-btn"
-            >
-              Buscar
-            </button>
-
-          </div>
-
-
-          <div class="empty-state compact">
-
-            <span>🔎</span>
-
-            <strong>
-              Digite uma NF-e ou fornecedor para pesquisar
-            </strong>
-
-          </div>
-
-        </div>
-
-      </section>
-
     </main>
-
   </div>
-
-
-
-  <!-- =======================================================
-       JAVASCRIPT DO APLICATIVO
-       ======================================================= -->
 
   <script src="app.js"></script>
 
-
-  <!-- =======================================================
-       SERVICE WORKER / PWA
-       ======================================================= -->
-
   <script>
-
     if ("serviceWorker" in navigator) {
-
-      window.addEventListener(
-        "load",
-        () => {
-
-          navigator.serviceWorker.register(
-            "./sw.js"
-          );
-
-        }
-      );
-
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js");
+      });
     }
-
   </script>
-
 </body>
 </html>

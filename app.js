@@ -22,6 +22,7 @@ function showScreen(id) {
 
   if (id === "home") loadLatest();
   if (id === "day") loadToday();
+  if (id === "history") loadHistory();
   if (id === "new") prepareNewReceipt();
 }
 
@@ -969,10 +970,11 @@ function ensureMerchandisePhotoInput() {
   if (!saveButton) return null;
 
   /*
-   * Primeiro procura um campo que já exista no index.html.
-   * Isso evita criar uma segunda seção de foto.
+   * Localiza o campo de foto da mercadoria que já existe
+   * no index.html. Não cria outro campo se ele existir.
    */
   let input = findFileInputByIds([
+    "goodsPhoto",
     "merchandiseImage",
     "mercadoriaImage",
     "merchPhoto",
@@ -981,8 +983,8 @@ function ensureMerchandisePhotoInput() {
   ]);
 
   /*
-   * Caso o index.html tenha um input de mercadoria com outro ID,
-   * procura pelo bloco cujo texto contenha "Foto da mercadoria".
+   * Fallback: procura um input de imagem próximo ao texto
+   * "Foto da mercadoria".
    */
   if (!input) {
     const allFileInputs = [
@@ -1001,118 +1003,216 @@ function ensureMerchandisePhotoInput() {
     }) || null;
   }
 
-  /*
-   * Se ainda não existir, cria somente UMA seção.
-   */
   if (!input) {
-    const wrapper =
-      document.createElement("div");
-
-    wrapper.className = "photo-section";
-    wrapper.id = "merchandisePhotoSection";
-    wrapper.style.marginTop = "14px";
-    wrapper.style.padding = "14px 0";
-
-    wrapper.innerHTML = `
-      <div class="form-section-title">📦 Foto da mercadoria</div>
-      <label>
-        Tire uma foto agora ou escolha uma imagem da galeria
-      </label>
-      <input
-        id="merchandiseImage"
-        class="field-input"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style="display:none"
-      >
-      <div id="merchandisePhotoStatus" class="form-status"></div>
-    `;
+    /*
+     * Se o HTML realmente não tiver o campo, cria um único
+     * input oculto dentro do formulário.
+     */
+    input = document.createElement("input");
+    input.id = "merchandiseImage";
+    input.type = "file";
+    input.accept = "image/*";
+    input.setAttribute("capture", "environment");
+    input.style.display = "none";
 
     saveButton.parentElement.insertBefore(
-      wrapper,
-      saveButton
-    );
-
-    input =
-      document.getElementById(
-        "merchandiseImage"
-      );
-  }
-
-  /*
-   * Dá um ID padrão ao input existente para que o restante do app
-   * consiga encontrá-lo nas próximas operações.
-   */
-  if (input && !input.id) {
-    input.id = "merchandiseImage";
-  }
-
-  /*
-   * Garante que a seção inteira fique ANTES do botão Finalizar.
-   */
-  const section =
-    input.closest(
-      "#merchandisePhotoSection, .photo-section, .form-section, section"
-    );
-
-  if (section && section.parentElement) {
-    section.parentElement.insertBefore(
-      section,
-      saveButton
-    );
-  } else if (input.parentElement) {
-    input.parentElement.insertBefore(
       input,
       saveButton
     );
   }
 
+  input.id = input.id || "merchandiseImage";
+  input.accept = "image/*";
+  input.setAttribute("capture", "environment");
+  input.style.display = "none";
+
   /*
-   * Remove qualquer seção duplicada que tenha sido criada por
-   * versões anteriores do aplicativo.
+   * IMPORTANTE:
+   * remove controles antigos da mercadoria.
+   * Eles eram inseridos no final do cartão e por isso
+   * apareciam depois do botão Finalizar.
    */
-  const sections = [
-    ...document.querySelectorAll(
-      ".photo-section"
+  document
+    .querySelectorAll(
+      "#merchandisePhotoControls"
     )
-  ];
+    .forEach(el => el.remove());
 
-  let keptSection = null;
-
-  sections.forEach(sectionElement => {
-    const isMerchandise =
-      /foto\s+da\s+mercadoria/i.test(
-        sectionElement.textContent || ""
-      );
-
-    if (!isMerchandise) return;
-
-    if (!keptSection) {
-      keptSection = sectionElement;
-      return;
-    }
-
-    sectionElement.remove();
-  });
+  document
+    .querySelectorAll(
+      "#merchandiseGalleryInput"
+    )
+    .forEach(el => el.remove());
 
   /*
-   * Se a seção foi criada pelo index.html e ainda não possui o ID,
-   * usa o input encontrado como referência.
+   * Remove possíveis controles antigos sem ID que pertençam
+   * à seção de mercadoria.
    */
-  if (keptSection && !keptSection.id) {
-    keptSection.id = "merchandisePhotoSection";
-  }
+  document
+    .querySelectorAll(
+      ".photo-controls"
+    )
+    .forEach(el => {
+      if (
+        /foto\s+da\s+mercadoria/i.test(
+          el.parentElement?.textContent || ""
+        )
+      ) {
+        el.remove();
+      }
+    });
 
   /*
-   * Procura/cria o status dentro da seção correta.
+   * Cria UMA entrada de galeria.
+   */
+  const galleryInput =
+    document.createElement("input");
+
+  galleryInput.type = "file";
+  galleryInput.accept = "image/*";
+  galleryInput.id =
+    "merchandiseGalleryInput";
+  galleryInput.style.display = "none";
+
+  /*
+   * Cria UMA área de botões.
+   */
+  const controls =
+    document.createElement("div");
+
+  controls.id =
+    "merchandisePhotoControls";
+
+  controls.className =
+    "photo-controls";
+
+  controls.style.display = "flex";
+  controls.style.gap = "8px";
+  controls.style.flexWrap = "wrap";
+  controls.style.marginTop = "8px";
+  controls.style.marginBottom = "8px";
+
+  const cameraButton =
+    createPhotoButton("📷 Tirar foto");
+
+  const galleryButton =
+    createPhotoButton(
+      "🖼️ Escolher da galeria"
+    );
+
+  /*
+   * Câmera.
+   */
+  cameraButton.addEventListener(
+    "click",
+    () => {
+      input.click();
+    }
+  );
+
+  /*
+   * Galeria.
+   */
+  galleryButton.addEventListener(
+    "click",
+    () => {
+      galleryInput.click();
+    }
+  );
+
+  /*
+   * Foto tirada pela câmera.
+   */
+  input.addEventListener(
+    "change",
+    () => {
+
+      const file =
+        input.files &&
+        input.files.length
+          ? input.files[0]
+          : null;
+
+      selectedMerchandisePhotoFile =
+        file;
+
+      const status =
+        document.getElementById(
+          "merchandisePhotoStatus"
+        );
+
+      if (status) {
+        status.textContent =
+          file
+            ? "📷 Foto da mercadoria selecionada."
+            : "";
+      }
+    }
+  );
+
+  /*
+   * Foto escolhida da galeria.
+   */
+  galleryInput.addEventListener(
+    "change",
+    () => {
+
+      const file =
+        galleryInput.files &&
+        galleryInput.files.length
+          ? galleryInput.files[0]
+          : null;
+
+      selectedMerchandisePhotoFile =
+        file;
+
+      const status =
+        document.getElementById(
+          "merchandisePhotoStatus"
+        );
+
+      if (status) {
+        status.textContent =
+          file
+            ? "🖼️ Foto da mercadoria selecionada."
+            : "";
+      }
+    }
+  );
+
+  controls.appendChild(
+    cameraButton
+  );
+
+  controls.appendChild(
+    galleryButton
+  );
+
+  /*
+   * Coloca os controles EXATAMENTE antes do botão Finalizar.
+   * Não usa input.parentElement.appendChild(),
+   * que era a causa do segundo conjunto aparecer depois
+   * do botão.
+   */
+  saveButton.parentElement.insertBefore(
+    galleryInput,
+    saveButton
+  );
+
+  saveButton.parentElement.insertBefore(
+    controls,
+    saveButton
+  );
+
+  /*
+   * Garante um status único.
    */
   let status =
     document.getElementById(
       "merchandisePhotoStatus"
     );
 
-  if (!status && keptSection) {
+  if (!status) {
     status =
       document.createElement("div");
 
@@ -1122,39 +1222,14 @@ function ensureMerchandisePhotoInput() {
     status.className =
       "form-status";
 
-    keptSection.appendChild(status);
-  }
-
-  buildPhotoControls({
-    input,
-    kind: "merchandise",
-    selectedSetter: file => {
-      selectedMerchandisePhotoFile = file;
-    },
-    getSelected: () =>
-      selectedMerchandisePhotoFile,
-    statusId: "merchandisePhotoStatus"
-  });
-
-  /*
-   * Depois que os controles foram criados, garante novamente que
-   * a seção esteja antes do botão Finalizar.
-   */
-  const finalSection =
-    document.getElementById(
-      "merchandisePhotoSection"
-    ) || keptSection;
-
-  if (finalSection && finalSection.parentElement) {
-    finalSection.parentElement.insertBefore(
-      finalSection,
+    saveButton.parentElement.insertBefore(
+      status,
       saveButton
     );
   }
 
   return input;
 }
-
 function fileToBase64(file, maxWidth = 2000, quality = 0.84) {
   return new Promise((resolve, reject) => {
     if (!file) {
@@ -1695,6 +1770,8 @@ function receiptCard(
     <button
       class="receipt-item"
       type="button"
+      data-receipt-id="${escapeHtml(receipt.id || "")}"
+      aria-label="Abrir NF-e ${escapeHtml(receipt.nfe || "")}"
     >
       <div class="receipt-main">
 
@@ -1736,9 +1813,647 @@ function receiptCard(
         </div>
 
       </div>
+
+      <div class="receipt-open-hint">
+        Toque para ver detalhes →
+      </div>
     </button>
   `;
 }
+
+/* =========================================================
+   HISTÓRICO
+   ========================================================= */
+
+async function loadHistory(query = "") {
+
+  let list =
+    document.getElementById(
+      "historyList"
+    );
+
+  if (!list) {
+    const screen =
+      document.getElementById(
+        "history"
+      );
+
+    if (screen) {
+      const card =
+        screen.querySelector(
+          ".section-card, .card"
+        );
+
+      if (card) {
+        list =
+          document.createElement(
+            "div"
+          );
+        list.id =
+          "historyList";
+        list.style.marginTop =
+          "14px";
+        card.appendChild(
+          list
+        );
+      }
+    }
+  }
+
+  if (!list) return;
+
+  list.innerHTML =
+    '<div class="empty-state"><span>⏳</span><strong>Carregando histórico...</strong></div>';
+
+  try {
+
+    const receipts =
+      await apiGet(
+        "history",
+        {
+          q: query
+        }
+      );
+
+    renderHistory(receipts);
+
+  } catch (error) {
+
+    list.innerHTML =
+      '<div class="empty-state"><span>⚠️</span><strong>Não foi possível carregar o histórico</strong><small>' +
+      escapeHtml(
+        error.message
+      ) +
+      "</small></div>";
+  }
+}
+
+
+function renderHistory(
+  receipts = []
+) {
+
+  const list =
+    document.getElementById(
+      "historyList"
+    );
+
+  if (!list) return;
+
+  if (!receipts.length) {
+
+    list.innerHTML =
+      '<div class="empty-state"><span>🔎</span><strong>Nenhum recebimento encontrado</strong><small>Pesquise por NF-e, fornecedor ou material.</small></div>';
+
+    return;
+  }
+
+  list.innerHTML =
+    '<div class="receipt-list">' +
+    receipts
+      .map(receiptCard)
+      .join("") +
+    "</div>";
+}
+
+
+function searchHistory() {
+
+  const input =
+    document.getElementById(
+      "historySearch"
+    ) ||
+    document.getElementById(
+      "search"
+    ) ||
+    document.querySelector(
+      'input[name="history-search"]'
+    );
+
+  const query =
+    input
+      ? input.value.trim()
+      : "";
+
+  loadHistory(query);
+}
+
+
+/* =========================================================
+   DETALHES DO RECEBIMENTO
+   ========================================================= */
+
+function showReceiptDetails(
+  receiptId
+) {
+
+  if (!receiptId) return;
+
+  /*
+   * Primeiro procuramos os dados já carregados
+   * na tela atual.
+   */
+  const cards =
+    document.querySelectorAll(
+      "[data-receipt-id]"
+    );
+
+  /*
+   * O objeto completo pode não estar mais disponível
+   * no DOM. Nesse caso consultamos o histórico e
+   * localizamos pelo ID.
+   */
+  const queryPromise =
+    apiGet(
+      "history",
+      {}
+    );
+
+  queryPromise
+    .then(receipts => {
+
+      const receipt =
+        receipts.find(
+          item =>
+            String(item.id) ===
+            String(receiptId)
+        );
+
+      if (!receipt) {
+
+        showReceiptDetailMessage(
+          "Recebimento não encontrado."
+        );
+
+        return;
+      }
+
+      renderReceiptDetails(
+        receipt
+      );
+
+    })
+    .catch(error => {
+
+      showReceiptDetailMessage(
+        error.message ||
+        "Não foi possível carregar os detalhes."
+      );
+
+    });
+}
+
+
+function renderReceiptDetails(
+  receipt
+) {
+
+  let modal =
+    document.getElementById(
+      "receiptDetailModal"
+    );
+
+  if (!modal) {
+
+    modal =
+      document.createElement(
+        "div"
+      );
+
+    modal.id =
+      "receiptDetailModal";
+
+    document.body.appendChild(
+      modal
+    );
+  }
+
+  const items =
+    Array.isArray(
+      receipt.items
+    )
+      ? receipt.items
+      : [];
+
+  modal.className =
+    "receipt-detail-overlay";
+
+  modal.innerHTML = `
+    <div
+      class="receipt-detail-card"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detalhes do recebimento"
+    >
+
+      <div class="receipt-detail-header">
+        <div>
+          <div class="receipt-detail-title">
+            NF-e ${escapeHtml(
+              receipt.nfe || ""
+            )}
+          </div>
+
+          <div class="receipt-detail-subtitle">
+            ${escapeHtml(
+              receipt.supplier ||
+              "Fornecedor não informado"
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="receipt-detail-close"
+          id="closeReceiptDetail"
+          aria-label="Fechar"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="receipt-detail-grid">
+
+        <div>
+          <span>Data</span>
+          <strong>
+            ${escapeHtml(
+              receipt.date || "-"
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>Recebido por</span>
+          <strong>
+            ${escapeHtml(
+              receipt.receivedBy ||
+              "-"
+            )}
+          </strong>
+        </div>
+
+      </div>
+
+      <div class="receipt-detail-section">
+
+        <h3>📦 Materiais recebidos</h3>
+
+        <div class="receipt-detail-items">
+          ${
+            items.length
+              ? items
+                  .map(
+                    (item, index) => `
+                      <div class="receipt-detail-item">
+
+                        <div class="receipt-detail-item-main">
+                          <strong>
+                            ${index + 1}.
+                            ${escapeHtml(
+                              item.description ||
+                              "Material não informado"
+                            )}
+                          </strong>
+
+                          <span>
+                            Quantidade:
+                            ${escapeHtml(
+                              item.quantity ||
+                              0
+                            )}
+                          </span>
+                        </div>
+
+                        <div class="receipt-detail-item-meta">
+                          <span>
+                            Destino:
+                            ${escapeHtml(
+                              item.destination ||
+                              "-"
+                            )}
+                          </span>
+
+                          ${
+                            item.os
+                              ? `<span>OS: ${escapeHtml(item.os)}</span>`
+                              : ""
+                          }
+
+                          ${
+                            item.task
+                              ? `<span>Tarefa: ${escapeHtml(item.task)}</span>`
+                              : ""
+                          }
+
+                          ${
+                            item.client
+                              ? `<span>Cliente: ${escapeHtml(item.client)}</span>`
+                              : ""
+                          }
+                        </div>
+
+                      </div>
+                    `
+                  )
+                  .join("")
+              : '<div class="empty-state compact"><span>📦</span><strong>Nenhum material informado</strong></div>'
+          }
+        </div>
+
+      </div>
+
+      ${
+        receipt.observation
+          ? `
+            <div class="receipt-detail-section">
+              <h3>📝 Observação</h3>
+              <p class="receipt-detail-observation">
+                ${escapeHtml(
+                  receipt.observation
+                )}
+              </p>
+            </div>
+          `
+          : ""
+      }
+
+      <div class="receipt-detail-footer">
+        <button
+          type="button"
+          class="primary-btn"
+          id="closeReceiptDetailBottom"
+        >
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  const close =
+    () => {
+      modal.className =
+        "receipt-detail-overlay hidden";
+    };
+
+  document
+    .getElementById(
+      "closeReceiptDetail"
+    )
+    ?.addEventListener(
+      "click",
+      close
+    );
+
+  document
+    .getElementById(
+      "closeReceiptDetailBottom"
+    )
+    ?.addEventListener(
+      "click",
+      close
+    );
+
+  modal.addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target ===
+        modal
+      ) {
+        close();
+      }
+    },
+    {
+      once: true
+    }
+  );
+}
+
+
+function showReceiptDetailMessage(
+  message
+) {
+
+  let modal =
+    document.getElementById(
+      "receiptDetailModal"
+    );
+
+  if (!modal) {
+
+    modal =
+      document.createElement(
+        "div"
+      );
+
+    modal.id =
+      "receiptDetailModal";
+
+    document.body.appendChild(
+      modal
+    );
+  }
+
+  modal.className =
+    "receipt-detail-overlay";
+
+  modal.innerHTML = `
+    <div class="receipt-detail-card">
+
+      <div class="receipt-detail-header">
+        <strong>Recebimento</strong>
+
+        <button
+          type="button"
+          class="receipt-detail-close"
+          onclick="document.getElementById('receiptDetailModal').classList.add('hidden')"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="empty-state">
+        <span>⚠️</span>
+        <strong>${escapeHtml(message)}</strong>
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   ESTILOS DOS DETALHES
+   ========================================================= */
+
+function ensureReceiptDetailStyles() {
+
+  if (
+    document.getElementById(
+      "receiptDetailStyles"
+    )
+  ) {
+    return;
+  }
+
+  const style =
+    document.createElement(
+      "style"
+    );
+
+  style.id =
+    "receiptDetailStyles";
+
+  style.textContent = `
+    .receipt-open-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      opacity: .65;
+      text-align: right;
+    }
+
+    .receipt-detail-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0,0,0,.45);
+      box-sizing: border-box;
+    }
+
+    .receipt-detail-overlay.hidden {
+      display: none;
+    }
+
+    .receipt-detail-card {
+      width: min(560px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .receipt-detail-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .receipt-detail-title {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .receipt-detail-subtitle {
+      margin-top: 4px;
+      font-size: 14px;
+      opacity: .75;
+    }
+
+    .receipt-detail-close {
+      border: 0;
+      background: transparent;
+      font-size: 30px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+
+    .receipt-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .receipt-detail-grid > div {
+      background: #f5f7fa;
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .receipt-detail-grid span {
+      display: block;
+      font-size: 12px;
+      opacity: .65;
+      margin-bottom: 4px;
+    }
+
+    .receipt-detail-section {
+      margin-top: 16px;
+    }
+
+    .receipt-detail-section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .receipt-detail-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .receipt-detail-item-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .receipt-detail-item-main span,
+    .receipt-detail-item-meta {
+      font-size: 12px;
+      opacity: .75;
+    }
+
+    .receipt-detail-item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .receipt-detail-observation {
+      background: #f5f7fa;
+      border-radius: 12px;
+      padding: 12px;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .receipt-detail-footer {
+      margin-top: 18px;
+    }
+
+    @media (max-width: 480px) {
+      .receipt-detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .receipt-detail-item-main {
+        flex-direction: column;
+      }
+    }
+  `;
+
+  document.head.appendChild(
+    style
+  );
+}
+
 
 
 /* =========================================================
@@ -1749,6 +2464,30 @@ document.addEventListener(
   "click",
   event => {
 
+    const receiptTarget =
+      event.target.closest(
+        "[data-receipt-id]"
+      );
+
+    if (receiptTarget) {
+      event.preventDefault();
+      showReceiptDetails(
+        receiptTarget.dataset.receiptId
+      );
+      return;
+    }
+
+    const historyButton =
+      event.target.closest(
+        "#historySearchBtn, #searchHistoryBtn, [data-history-search]"
+      );
+
+    if (historyButton) {
+      event.preventDefault();
+      searchHistory();
+      return;
+    }
+
     const target =
       event.target.closest(
         "[data-screen]"
@@ -1758,6 +2497,30 @@ document.addEventListener(
       showScreen(
         target.dataset.screen
       );
+    }
+  }
+);
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key !== "Enter"
+    ) {
+      return;
+    }
+
+    const target =
+      event.target;
+
+    if (
+      target.matches(
+        "#historySearch, #search, input[name='history-search']"
+      )
+    ) {
+      event.preventDefault();
+      searchHistory();
     }
   }
 );
@@ -1821,6 +2584,7 @@ document.addEventListener(
      */
     setupNfPhotoControls();
     ensureMerchandisePhotoInput();
+    ensureReceiptDetailStyles();
 
 
     showScreen("home");
