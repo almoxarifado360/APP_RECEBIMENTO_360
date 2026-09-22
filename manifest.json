@@ -1,10 +1,26 @@
 {
   "name": "Recebimento 360",
   "short_name": "Recebimento 360",
+  "description": "Aplicativo para recebimento de materiais da 360 Manutenção.",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f0f4f8",
-  "theme_color": "#123f7b",
+  "theme_color": "#093272",
   "lang": "pt-BR",
-  "icons": []
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
