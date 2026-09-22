@@ -1,6 +1,9 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbw3B8ZLc22bcc1HIAVvoaDguRzlupuixrp5Mka5667VHQF9oIvmEeRpqvuqEJMzRXMK/exec";
 const screens = ["home", "new", "day", "history"];
 
+let selectedNfPhotoFile = null;
+let selectedMerchandisePhotoFile = null;
+
 function showScreen(id) {
   screens.forEach(screen => {
     const el = document.getElementById(screen);
@@ -114,6 +117,9 @@ function prepareNewReceipt() {
   ) {
     addItem();
   }
+
+  setupNfPhotoControls();
+  ensureMerchandisePhotoInput();
 }
 
 
@@ -558,20 +564,18 @@ async function readNfImage() {
     return;
   }
 
-  if (
-    !input.files ||
-    !input.files.length
-  ) {
+  const file =
+    selectedNfPhotoFile ||
+    (input.files && input.files.length
+      ? input.files[0]
+      : null);
 
+  if (!file) {
     alert(
       "Primeiro tire ou selecione uma foto da NF-e."
     );
-
     return;
   }
-
-  const file =
-    input.files[0];
 
   const originalText =
     button
@@ -827,6 +831,136 @@ function findFileInputByIds(ids) {
   return null;
 }
 
+function createPhotoButton(label, className = "photo-action-btn") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  return button;
+}
+
+function buildPhotoControls({
+  input,
+  kind,
+  selectedSetter,
+  getSelected,
+  statusId
+}) {
+  if (!input) return;
+
+  input.accept = "image/*";
+  input.setAttribute("capture", "environment");
+  input.style.display = "none";
+
+  const existing =
+    document.getElementById(
+      kind === "nf" ? "nfPhotoControls" : "merchandisePhotoControls"
+    );
+
+  if (existing) return;
+
+  const galleryInput = document.createElement("input");
+  galleryInput.type = "file";
+  galleryInput.accept = "image/*";
+  galleryInput.style.display = "none";
+  galleryInput.id =
+    kind === "nf"
+      ? "nfGalleryInput"
+      : "merchandiseGalleryInput";
+
+  const controls = document.createElement("div");
+  controls.id =
+    kind === "nf"
+      ? "nfPhotoControls"
+      : "merchandisePhotoControls";
+  controls.className = "photo-controls";
+  controls.style.display = "flex";
+  controls.style.gap = "8px";
+  controls.style.flexWrap = "wrap";
+  controls.style.marginTop = "8px";
+
+  const cameraButton =
+    createPhotoButton("📷 Tirar foto");
+
+  const galleryButton =
+    createPhotoButton("🖼️ Escolher da galeria");
+
+  cameraButton.addEventListener("click", () => {
+    input.click();
+  });
+
+  galleryButton.addEventListener("click", () => {
+    galleryInput.click();
+  });
+
+  input.addEventListener("change", () => {
+    const file =
+      input.files && input.files.length
+        ? input.files[0]
+        : null;
+
+    selectedSetter(file);
+
+    const status =
+      document.getElementById(statusId);
+
+    if (status) {
+      status.textContent =
+        file
+          ? "📷 Foto tirada com sucesso."
+          : "";
+    }
+  });
+
+  galleryInput.addEventListener("change", () => {
+    const file =
+      galleryInput.files &&
+      galleryInput.files.length
+        ? galleryInput.files[0]
+        : null;
+
+    selectedSetter(file);
+
+    const status =
+      document.getElementById(statusId);
+
+    if (status) {
+      status.textContent =
+        file
+          ? "🖼️ Foto selecionada da galeria."
+          : "";
+    }
+  });
+
+  input.parentElement?.appendChild(galleryInput);
+  input.parentElement?.appendChild(controls);
+
+  controls.appendChild(cameraButton);
+  controls.appendChild(galleryButton);
+
+  return {
+    cameraInput: input,
+    galleryInput,
+    controls
+  };
+}
+
+function setupNfPhotoControls() {
+  const input = findNfImageInput();
+
+  if (!input) return;
+
+  buildPhotoControls({
+    input,
+    kind: "nf",
+    selectedSetter: file => {
+      selectedNfPhotoFile = file;
+    },
+    getSelected: () => selectedNfPhotoFile,
+    statusId: "nfReadStatus"
+  });
+}
+
 function ensureMerchandisePhotoInput() {
   let input = findFileInputByIds([
     "merchandiseImage",
@@ -836,34 +970,59 @@ function ensureMerchandisePhotoInput() {
     "fotoMercadoria"
   ]);
 
-  if (input) return input;
+  if (!input) {
+    const saveButton =
+      document.getElementById("saveReceiptBtn");
 
-  const nfInput = findNfImageInput();
-  if (!nfInput) return null;
+    if (!saveButton) return null;
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "photo-section";
-  wrapper.style.marginTop = "14px";
+    const wrapper =
+      document.createElement("div");
 
-  wrapper.innerHTML = `
-    <div class="form-section-title">📦 Foto da mercadoria</div>
-    <label for="merchandiseImage">
-      Selecione ou tire uma foto da mercadoria
-    </label>
-    <input
-      id="merchandiseImage"
-      class="field-input"
-      type="file"
-      accept="image/*"
-      capture="environment"
-    >
-    <div id="merchandisePhotoStatus" class="form-status"></div>
-  `;
+    wrapper.className = "photo-section";
+    wrapper.id = "merchandisePhotoSection";
+    wrapper.style.marginTop = "14px";
+    wrapper.style.padding = "14px 0";
 
-  const parent = nfInput.parentElement || nfInput;
-  parent.insertAdjacentElement("afterend", wrapper);
+    wrapper.innerHTML = `
+      <div class="form-section-title">📦 Foto da mercadoria</div>
+      <label>
+        Tire uma foto agora ou escolha uma imagem da galeria
+      </label>
+      <input
+        id="merchandiseImage"
+        class="field-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style="display:none"
+      >
+      <div id="merchandisePhotoStatus" class="form-status"></div>
+    `;
 
-  return document.getElementById("merchandiseImage");
+    saveButton.parentElement.insertBefore(
+      wrapper,
+      saveButton
+    );
+
+    input =
+      document.getElementById(
+        "merchandiseImage"
+      );
+  }
+
+  buildPhotoControls({
+    input,
+    kind: "merchandise",
+    selectedSetter: file => {
+      selectedMerchandisePhotoFile = file;
+    },
+    getSelected: () =>
+      selectedMerchandisePhotoFile,
+    statusId: "merchandisePhotoStatus"
+  });
+
+  return input;
 }
 
 function fileToBase64(file, maxWidth = 2000, quality = 0.84) {
@@ -1101,26 +1260,21 @@ async function saveReceipt() {
           .join("/")
       : "";
 
-  const nfPhotoFile = getSelectedPhotoInput([
-    "nfImage",
-    "nfeImage",
-    "nfPhoto",
-    "nfePhoto",
-    "nfImageInput",
-    "nfeImageInput",
-    "photoNf",
-    "photoNfe"
-  ]);
+  const nfPhotoFile =
+    selectedNfPhotoFile ||
+    (() => {
+      const input = findNfImageInput();
+      return input &&
+        input.files &&
+        input.files.length
+        ? input.files[0]
+        : null;
+    })();
 
-  const merchandisePhotoInput =
-    ensureMerchandisePhotoInput();
+  ensureMerchandisePhotoInput();
 
   const merchandisePhotoFile =
-    merchandisePhotoInput &&
-    merchandisePhotoInput.files &&
-    merchandisePhotoInput.files.length
-      ? merchandisePhotoInput.files[0]
-      : null;
+    selectedMerchandisePhotoFile;
 
   button.classList.add(
     "loading-btn"
@@ -1210,12 +1364,31 @@ async function saveReceipt() {
       nfPhotoInput.value = "";
     }
 
+    const nfGalleryInput =
+      document.getElementById("nfGalleryInput");
+
+    if (nfGalleryInput) {
+      nfGalleryInput.value = "";
+    }
+
     const merchandiseInput =
       ensureMerchandisePhotoInput();
 
     if (merchandiseInput) {
       merchandiseInput.value = "";
     }
+
+    const merchandiseGalleryInput =
+      document.getElementById(
+        "merchandiseGalleryInput"
+      );
+
+    if (merchandiseGalleryInput) {
+      merchandiseGalleryInput.value = "";
+    }
+
+    selectedNfPhotoFile = null;
+    selectedMerchandisePhotoFile = null;
 
     const nfPhotoStatus =
       document.getElementById(
@@ -1511,54 +1684,14 @@ document.addEventListener(
 
 
     /*
-     * Seleção da foto.
-     * Não inicia a leitura automaticamente.
+     * Fotos:
+     * cria os botões "Tirar foto" e
+     * "Escolher da galeria" para NF-e
+     * e mercadoria.
      */
+    setupNfPhotoControls();
+    ensureMerchandisePhotoInput();
 
-    const nfInput =
-      findNfImageInput();
-
-    if (nfInput) {
-
-      nfInput.addEventListener(
-        "change",
-        () => {
-
-          const status =
-            document.getElementById(
-              "nfReadStatus"
-            );
-
-          if (status) {
-            status.textContent =
-              "📷 Foto selecionada. Clique em \"Ler NF-e\".";
-          }
-        }
-      );
-    }
-
-    const merchandiseInput =
-      ensureMerchandisePhotoInput();
-
-    if (merchandiseInput) {
-      merchandiseInput.addEventListener(
-        "change",
-        () => {
-          const status =
-            document.getElementById(
-              "merchandisePhotoStatus"
-            );
-
-          if (status) {
-            status.textContent =
-              merchandiseInput.files &&
-              merchandiseInput.files.length
-                ? "📷 Foto da mercadoria selecionada."
-                : "";
-          }
-        }
-      );
-    }
 
     showScreen("home");
   }
