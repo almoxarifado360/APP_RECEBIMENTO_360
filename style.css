@@ -4,7 +4,7 @@
 
 :root {
   --blue: #1450a0;
-  --blue-dark: #103f7e;
+  --blue-dark: #093272;
   --blue-button: #2167d5;
   --background: #f0f4f8;
   --card: #ffffff;
@@ -47,7 +47,7 @@ button {
 .brand-header {
   background: var(--blue-dark);
   color: #fff;
-  padding: 25px 18px 31px;
+  padding: 24px 18px 30px;
   border-radius: 0 0 30px 30px;
   text-align: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
@@ -55,15 +55,15 @@ button {
 
 .brand-logo {
   display: block;
-  width: min(78%, 330px);
-  height: 94px;
+  width: min(84%, 350px);
+  height: 104px;
   object-fit: contain;
   margin: 0 auto 4px;
 }
 
 .brand-header h1 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: .1px;
@@ -89,7 +89,7 @@ button {
 }
 
 .menu-btn {
-  min-height: 50px;
+  min-height: 58px;
   border: 0;
   border-radius: 12px;
   background: #fff;
@@ -117,7 +117,7 @@ button {
 }
 
 .menu-btn strong {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
