@@ -816,6 +816,137 @@ function showNfReadError(message) {
 
 
 /* =========================================================
+   FOTOS DO RECEBIMENTO
+   ========================================================= */
+
+function findFileInputByIds(ids) {
+  for (const id of ids) {
+    const element = document.getElementById(id);
+    if (element) return element;
+  }
+  return null;
+}
+
+function ensureMerchandisePhotoInput() {
+  let input = findFileInputByIds([
+    "merchandiseImage",
+    "mercadoriaImage",
+    "merchPhoto",
+    "mercadoriaPhoto",
+    "fotoMercadoria"
+  ]);
+
+  if (input) return input;
+
+  const nfInput = findNfImageInput();
+  if (!nfInput) return null;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "photo-section";
+  wrapper.style.marginTop = "14px";
+
+  wrapper.innerHTML = `
+    <div class="form-section-title">📦 Foto da mercadoria</div>
+    <label for="merchandiseImage">
+      Selecione ou tire uma foto da mercadoria
+    </label>
+    <input
+      id="merchandiseImage"
+      class="field-input"
+      type="file"
+      accept="image/*"
+      capture="environment"
+    >
+    <div id="merchandisePhotoStatus" class="form-status"></div>
+  `;
+
+  const parent = nfInput.parentElement || nfInput;
+  parent.insertAdjacentElement("afterend", wrapper);
+
+  return document.getElementById("merchandiseImage");
+}
+
+function fileToBase64(file, maxWidth = 2000, quality = 0.84) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      resolve(null);
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = event => {
+      const image = new Image();
+
+      image.onload = () => {
+        let width = image.width;
+        let height = image.height;
+
+        if (width > maxWidth) {
+          const ratio = maxWidth / width;
+          width = maxWidth;
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, width, height);
+
+        canvas.toBlob(blob => {
+          if (!blob) {
+            reject(new Error("Não foi possível preparar a foto."));
+            return;
+          }
+
+          const blobReader = new FileReader();
+
+          blobReader.onload = () => {
+            const result = blobReader.result;
+
+            resolve({
+              base64: result.split(",")[1],
+              mimeType: "image/jpeg"
+            });
+          };
+
+          blobReader.onerror = () => {
+            reject(new Error("Erro ao preparar a foto."));
+          };
+
+          blobReader.readAsDataURL(blob);
+        }, "image/jpeg", quality);
+      };
+
+      image.onerror = () => {
+        reject(new Error("Não foi possível abrir a foto."));
+      };
+
+      image.src = event.target.result;
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Não foi possível ler a foto."));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function getSelectedPhotoInput(ids) {
+  const input = findFileInputByIds(ids);
+
+  if (!input || !input.files || !input.files.length) {
+    return null;
+  }
+
+  return input.files[0];
+}
+
+
+/* =========================================================
    SALVAR RECEBIMENTO
    ========================================================= */
 
@@ -970,6 +1101,27 @@ async function saveReceipt() {
           .join("/")
       : "";
 
+  const nfPhotoFile = getSelectedPhotoInput([
+    "nfImage",
+    "nfeImage",
+    "nfPhoto",
+    "nfePhoto",
+    "nfImageInput",
+    "nfeImageInput",
+    "photoNf",
+    "photoNfe"
+  ]);
+
+  const merchandisePhotoInput =
+    ensureMerchandisePhotoInput();
+
+  const merchandisePhotoFile =
+    merchandisePhotoInput &&
+    merchandisePhotoInput.files &&
+    merchandisePhotoInput.files.length
+      ? merchandisePhotoInput.files[0]
+      : null;
+
   button.classList.add(
     "loading-btn"
   );
@@ -978,6 +1130,31 @@ async function saveReceipt() {
     "⏳ Salvando...";
 
   try {
+
+    button.textContent =
+      "⏳ Preparando fotos...";
+
+    let nfPhoto = null;
+    let merchandisePhoto = null;
+
+    if (nfPhotoFile) {
+      nfPhoto = await fileToBase64(
+        nfPhotoFile,
+        2000,
+        0.84
+      );
+    }
+
+    if (merchandisePhotoFile) {
+      merchandisePhoto = await fileToBase64(
+        merchandisePhotoFile,
+        2000,
+        0.84
+      );
+    }
+
+    button.textContent =
+      "⏳ Salvando...";
 
     await apiPost({
 
@@ -990,7 +1167,9 @@ async function saveReceipt() {
         supplier,
         items,
         receivedBy,
-        observation
+        observation,
+        nfPhoto,
+        merchandisePhoto
       }
     });
 
@@ -1023,6 +1202,38 @@ async function saveReceipt() {
         "observation"
       )
       .value = "";
+
+    const nfPhotoInput =
+      findNfImageInput();
+
+    if (nfPhotoInput) {
+      nfPhotoInput.value = "";
+    }
+
+    const merchandiseInput =
+      ensureMerchandisePhotoInput();
+
+    if (merchandiseInput) {
+      merchandiseInput.value = "";
+    }
+
+    const nfPhotoStatus =
+      document.getElementById(
+        "nfReadStatus"
+      );
+
+    if (nfPhotoStatus) {
+      nfPhotoStatus.textContent = "";
+    }
+
+    const merchandiseStatus =
+      document.getElementById(
+        "merchandisePhotoStatus"
+      );
+
+    if (merchandiseStatus) {
+      merchandiseStatus.textContent = "";
+    }
 
     document
       .getElementById(
@@ -1326,6 +1537,28 @@ document.addEventListener(
       );
     }
 
+    const merchandiseInput =
+      ensureMerchandisePhotoInput();
+
+    if (merchandiseInput) {
+      merchandiseInput.addEventListener(
+        "change",
+        () => {
+          const status =
+            document.getElementById(
+              "merchandisePhotoStatus"
+            );
+
+          if (status) {
+            status.textContent =
+              merchandiseInput.files &&
+              merchandiseInput.files.length
+                ? "📷 Foto da mercadoria selecionada."
+                : "";
+          }
+        }
+      );
+    }
 
     showScreen("home");
   }
