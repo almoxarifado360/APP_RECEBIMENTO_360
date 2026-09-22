@@ -65,14 +65,30 @@
 
         <div class="section-card">
           <h2>Novo recebimento</h2>
-          <p class="muted">A leitura da NF-e será adicionada na próxima etapa.</p>
+          <p class="muted">Nesta primeira etapa, vamos testar o cadastro manual. A leitura automática da NF-e entra depois.</p>
 
-          <label for="nfPhoto">📷 Foto da NF-e</label>
-          <input id="nfPhoto" type="file" accept="image/*" capture="environment">
+          <label for="receiptDate">📅 Data do recebimento</label>
+          <input id="receiptDate" class="field-input" type="date">
 
-          <button class="primary-btn" type="button">
-            🤖 Ler NF-e
-          </button>
+          <label for="receiptNfe">🧾 Número da NF-e *</label>
+          <input id="receiptNfe" class="field-input" type="text" inputmode="numeric" placeholder="Ex.: 123456">
+
+          <label for="receiptSupplier">🏢 Fornecedor</label>
+          <input id="receiptSupplier" class="field-input" type="text" placeholder="Nome do fornecedor">
+
+          <div class="form-section-title">📦 Materiais recebidos</div>
+          <div id="itemsContainer"></div>
+
+          <button id="addItemBtn" class="secondary-btn full-btn" type="button">＋ Adicionar material</button>
+
+          <label for="receivedBy">👤 Recebido por</label>
+          <input id="receivedBy" class="field-input" type="text" placeholder="Nome de quem recebeu">
+
+          <label for="observation">📝 Observação</label>
+          <textarea id="observation" class="field-input textarea" rows="3" placeholder="Observações do recebimento"></textarea>
+
+          <button id="saveReceiptBtn" class="primary-btn" type="button">✅ Finalizar recebimento</button>
+          <div id="saveStatus" class="form-status"></div>
         </div>
       </section>
 
