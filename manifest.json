@@ -1,0 +1,10 @@
+{
+  "name": "Recebimento 360",
+  "short_name": "Recebimento 360",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#123f7b",
+  "lang": "pt-BR",
+  "icons": []
+}
