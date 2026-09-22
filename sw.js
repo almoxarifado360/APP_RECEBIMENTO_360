@@ -1,4 +1,4 @@
-const CACHE_NAME = "recebimento-360-v4";
+const CACHE_NAME = "recebimento-360-v5";
 
 const APP_FILES = [
   "./",
