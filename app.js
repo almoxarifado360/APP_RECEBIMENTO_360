@@ -962,6 +962,16 @@ function setupNfPhotoControls() {
 }
 
 function ensureMerchandisePhotoInput() {
+
+  const saveButton =
+    document.getElementById("saveReceiptBtn");
+
+  if (!saveButton) return null;
+
+  /*
+   * Primeiro procura um campo que já exista no index.html.
+   * Isso evita criar uma segunda seção de foto.
+   */
   let input = findFileInputByIds([
     "merchandiseImage",
     "mercadoriaImage",
@@ -970,12 +980,31 @@ function ensureMerchandisePhotoInput() {
     "fotoMercadoria"
   ]);
 
+  /*
+   * Caso o index.html tenha um input de mercadoria com outro ID,
+   * procura pelo bloco cujo texto contenha "Foto da mercadoria".
+   */
   if (!input) {
-    const saveButton =
-      document.getElementById("saveReceiptBtn");
+    const allFileInputs = [
+      ...document.querySelectorAll('input[type="file"]')
+    ];
 
-    if (!saveButton) return null;
+    input = allFileInputs.find(candidate => {
+      const parent = candidate.closest(
+        ".photo-section, .form-section, .card, section, div"
+      );
 
+      return parent &&
+        /foto\s+da\s+mercadoria/i.test(
+          parent.textContent || ""
+        );
+    }) || null;
+  }
+
+  /*
+   * Se ainda não existir, cria somente UMA seção.
+   */
+  if (!input) {
     const wrapper =
       document.createElement("div");
 
@@ -1011,6 +1040,91 @@ function ensureMerchandisePhotoInput() {
       );
   }
 
+  /*
+   * Dá um ID padrão ao input existente para que o restante do app
+   * consiga encontrá-lo nas próximas operações.
+   */
+  if (input && !input.id) {
+    input.id = "merchandiseImage";
+  }
+
+  /*
+   * Garante que a seção inteira fique ANTES do botão Finalizar.
+   */
+  const section =
+    input.closest(
+      "#merchandisePhotoSection, .photo-section, .form-section, section"
+    );
+
+  if (section && section.parentElement) {
+    section.parentElement.insertBefore(
+      section,
+      saveButton
+    );
+  } else if (input.parentElement) {
+    input.parentElement.insertBefore(
+      input,
+      saveButton
+    );
+  }
+
+  /*
+   * Remove qualquer seção duplicada que tenha sido criada por
+   * versões anteriores do aplicativo.
+   */
+  const sections = [
+    ...document.querySelectorAll(
+      ".photo-section"
+    )
+  ];
+
+  let keptSection = null;
+
+  sections.forEach(sectionElement => {
+    const isMerchandise =
+      /foto\s+da\s+mercadoria/i.test(
+        sectionElement.textContent || ""
+      );
+
+    if (!isMerchandise) return;
+
+    if (!keptSection) {
+      keptSection = sectionElement;
+      return;
+    }
+
+    sectionElement.remove();
+  });
+
+  /*
+   * Se a seção foi criada pelo index.html e ainda não possui o ID,
+   * usa o input encontrado como referência.
+   */
+  if (keptSection && !keptSection.id) {
+    keptSection.id = "merchandisePhotoSection";
+  }
+
+  /*
+   * Procura/cria o status dentro da seção correta.
+   */
+  let status =
+    document.getElementById(
+      "merchandisePhotoStatus"
+    );
+
+  if (!status && keptSection) {
+    status =
+      document.createElement("div");
+
+    status.id =
+      "merchandisePhotoStatus";
+
+    status.className =
+      "form-status";
+
+    keptSection.appendChild(status);
+  }
+
   buildPhotoControls({
     input,
     kind: "merchandise",
@@ -1021,6 +1135,22 @@ function ensureMerchandisePhotoInput() {
       selectedMerchandisePhotoFile,
     statusId: "merchandisePhotoStatus"
   });
+
+  /*
+   * Depois que os controles foram criados, garante novamente que
+   * a seção esteja antes do botão Finalizar.
+   */
+  const finalSection =
+    document.getElementById(
+      "merchandisePhotoSection"
+    ) || keptSection;
+
+  if (finalSection && finalSection.parentElement) {
+    finalSection.parentElement.insertBefore(
+      finalSection,
+      saveButton
+    );
+  }
 
   return input;
 }
